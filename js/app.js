@@ -32,83 +32,50 @@ function get_random_category() {
   return category;
 }
 
-function get_image_infos(cb) {
-  /**
-  * Gets images from a random category and stores the results in
-  *   Chrome.synch storage.
-  */
-  var category = get_random_category();
-  var url = 'https://commons.wikimedia.org/w/api.php';
-  var params = {'action': 'query',
-                'generator': 'categorymembers',
-                'gcmtitle': category,
-                'gcmsort': 'timestamp',
-                'cmdir': 'desc',
-                'gcmtype': 'file',
-                'prop': 'imageinfo',
-                'iiprop': 'url|user|extmetadata',
-                'format': 'json',
-                'gcmlimit': 150}; // TODO: Store in settings?
-  var ajax_settings = {'dataType': 'jsonp',
-                       'url': url,
-                       'data': params}
-  $.ajax(ajax_settings).done(function(data) {
-    try {
-      var images = data['query']['pages'];
-      var ret = [];
-      // TODO: Only need 10
-      for (var id in images) {
-        if (images.hasOwnProperty(id)) {
-          var image = images[id];
-          if (image['imageinfo'] && image['imageinfo'].length > 0 && image['imageinfo'][0]['extmetadata']['LicenseShortName']) {
-            var filename = image['imageinfo'][0]['url'].split(/[\/]+/).pop();
-            var parts = image['imageinfo'][0]['url'].split(/commons\//);
-            var src = parts[0] + 'commons/thumb/' + parts[1] + '/1440px-' + filename;
-            var rights = image['imageinfo'][0]['extmetadata']['LicenseShortName']['value'];
-            ret.unshift({'src': src, 
-                         'author': image['imageinfo'][0]['user'],
-                         'userpage': 'https://commons.wikimedia.org/wiki/User:' + image['imageinfo'][0]['user'],
-                         'title': image['title'].replace('File:', '').split(/[\.]+/).shift(),
-                         'filepage': image['imageinfo'][0]['descriptionurl'],
-                         'rights': rights});
-          }
-        }
+function get_image_infos() {
+  ret = []
+  for (i=0; i < 10; i++) {
+    var photo_idx = Math.floor(Math.random() * photos.length)
+    var photo = photos[photo_idx]
+    if (photo['imageinfo'] && photo['imageinfo'].length > 0 && photo['imageinfo'][0]['extmetadata']['LicenseShortName']) {
+        var filename = photo['imageinfo'][0]['url'].split(/[\/]+/).pop();
+        var parts = photo['imageinfo'][0]['url'].split(/commons\//);
+        var src = parts[0] + 'commons/thumb/' + parts[1] + '/1440px-' + filename;
+        var rights = photo['imageinfo'][0]['extmetadata']['LicenseShortName']['value'];
+        ret.unshift({'src': src, 
+                     'author': photo['imageinfo'][0]['user'],
+                     'userpage': 'https://commons.wikimedia.org/wiki/User:' + photo['imageinfo'][0]['user'],
+                     'title': photo['title'].replace('File:', '').split(/[\.]+/).shift(),
+                     'filepage': photo['imageinfo'][0]['descriptionurl'],
+                     'rights': rights});
       }
-      ret = shuffle(ret);
-      cb(ret)
-    } catch (e) {
-      console.log('Could not update the image list')
-    }
-  });
+  }
+  return ret  
 }
 
 
 $(function() {
 
-  get_image_infos(function(slides) {
-    $('body').vegas({
-      timer: false,
-      color: '#000',
-      delay: settings['delay'],
-      color: '#000',
-      slides: slides,
-      transitionDuration: 0,
-      walk: function(index, slide) {
-        $('#credits-container').show();
-        $('#filename')
-          .html(slide.title)
-          .attr('href', slide.filepage);
-        $('#author')
-          .html(slide.author)
-          .attr('href', slide.userpage);
-        $('#rights')
-          .html(slide.rights);
-      }
-    });
-
+  var slides = get_image_infos()
+  $('body').vegas({
+    timer: false,
+    color: '#000',
+    delay: settings['delay'],
+    color: '#000',
+    slides: slides,
+    transitionDuration: 0,
+    walk: function(index, slide) {
+      $('#credits-container').show();
+      $('#filename')
+        .html(slide.title)
+        .attr('href', slide.filepage);
+      $('#author')
+        .html(slide.author)
+        .attr('href', slide.userpage);
+      $('#rights')
+        .html(slide.rights);
+    }
   });
-
-  
 
   $('#credits-container').hide();
 })
